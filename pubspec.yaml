@@ -1,0 +1,35 @@
+name: zangetsu_source_bridge
+description: "Mangayomi-compatible extension runtime bridge for Zangetsu."
+version: 0.1.0
+publish_to: "none"
+
+environment:
+  sdk: ^3.12.2
+  flutter: ">=3.44.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  d4rt: 0.2.4
+  flutter_js: ^0.8.0
+  html: ^0.15.6
+  xpath_selector_html_parser: ^3.0.1
+  http: ^1.6.0
+  http_interceptor: ^2.0.0
+  crypto: ^3.0.7
+  encrypt: ^5.0.3
+  js_packer: ^0.0.6
+  intl: ^0.20.2
+  collection: ^1.19.1
+  path: ^1.9.1
+  pseudom: ^1.0.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+dependency_overrides:
+  analyzer: 10.0.1
+
+flutter:
