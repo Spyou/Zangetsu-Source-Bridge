@@ -10,23 +10,33 @@ void main() {
   test(
     'JavaScript worker exposes settings and passes selected filters',
     () async {
-      final worker = MangayomiRuntimeWorker(
-        source,
-        '''
+      const code = '''
 class DefaultExtension extends MProvider {
   getSourcePreferences() { return [{key: 'server', listPreference: {title: 'Server', entries: ['A', 'B'], entryValues: ['a', 'b'], valueIndex: 0}}]; }
   getFilterList() { return [{type_name: 'SelectFilter', type: 'genre', name: 'Genre', state: 0, values: [{name: 'All', value: ''}, {name: 'Action', value: 'action'}]}]; }
   async search(query, page, filters) { return {list: [{name: filters[0].values[filters[0].state].name, link: '/item'}], hasNextPage: false}; }
+  async getHtmlContent() { return new SharedPreferences().getString('server', ''); }
 }
-''',
+''';
+      final worker = MangayomiRuntimeWorker(
+        source,
+        code,
         MangayomiCodeLanguage.javascript,
         preferences: {'server': 'b'},
       );
       addTearDown(worker.dispose);
+      expect(await worker.getHtmlContent('', ''), 'b');
       expect((await worker.getSourcePreferences()).single['key'], 'server');
       final filters = await worker.getFilterList();
       filters.single['state'] = 1;
       expect((await worker.search('', 1, filters)).list.single.name, 'Action');
+      final defaultWorker = MangayomiRuntimeWorker(
+        source,
+        code,
+        MangayomiCodeLanguage.javascript,
+      );
+      addTearDown(defaultWorker.dispose);
+      expect(await defaultWorker.getHtmlContent('', ''), 'a');
     },
   );
 
