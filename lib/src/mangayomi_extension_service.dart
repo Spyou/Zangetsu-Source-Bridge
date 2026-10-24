@@ -44,9 +44,11 @@ class MangayomiExtensionService {
       if (entries is! List || entries.any((entry) => entry is! String)) {
         throw const FormatException('Invalid repository list');
       }
+      final seen = <Uri>{};
       _repositories = [
         for (final entry in entries)
-          _validateRepository(Uri.parse(entry as String)),
+          if (seen.add(_validateRepository(Uri.parse(entry))))
+            _validateRepository(Uri.parse(entry)),
       ];
     }
     return List.unmodifiable(_repositories!);
@@ -132,6 +134,22 @@ class MangayomiExtensionService {
       throw const FormatException(
         'Repository URL must use HTTPS without credentials, query, or fragment',
       );
+    }
+    // A repository is its DIRECTORY, not the index file you happened to
+    // link. index/anime_index/manga_index/novel_index.json of one dir are
+    // the same repo — normalize to the directory so the same repo can't be
+    // added twice under different index URLs. Source keys already digest
+    // `repository.resolve('.')`, so installs survive the normalization.
+    const indexNames = {
+      'index.json',
+      'anime_index.json',
+      'manga_index.json',
+      'novel_index.json',
+    };
+    final segments = url.pathSegments;
+    if (segments.isNotEmpty && indexNames.contains(segments.last)) {
+      final dir = segments.sublist(0, segments.length - 1).join('/');
+      return url.replace(path: '$dir/');
     }
     return url;
   }

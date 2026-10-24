@@ -255,6 +255,77 @@ void main() {
     client.close();
   });
 
+  test('index file URLs of one repository collapse to a single root', () async {
+    final directory = Directory(
+      path.join(Directory.current.path, 'build', 'extension-root-add-test'),
+    );
+    if (await directory.exists()) await directory.delete(recursive: true);
+    addTearDown(() async {
+      if (await directory.exists()) await directory.delete(recursive: true);
+    });
+    final client = MockClient((request) async {
+      final type = request.url.path.endsWith('anime_index.json') ? 1 : 0;
+      return http.Response(
+        jsonEncode([
+          {
+            'id': type + 1,
+            'name': 'Source$type',
+            'baseUrl': 'https://s$type.example.com',
+            'sourceCodeUrl': 'https://repo.example.com/$type.js',
+            'version': '1',
+            'itemType': type,
+            'sourceCodeLanguage': 1,
+            'lang': 'en',
+          },
+        ]),
+        200,
+      );
+    });
+    final service = MangayomiExtensionService(directory, client: client);
+    final root = Uri.parse('https://repo.example.com/ext/');
+    final sources = await service.addRepository(
+      Uri.parse('https://repo.example.com/ext/anime_index.json'),
+    );
+    expect(sources.map((s) => s.contentType).toSet(), {
+      MangayomiContentType.manga,
+      MangayomiContentType.video,
+    });
+    await service.addRepository(
+      Uri.parse('https://repo.example.com/ext/index.json'),
+    );
+    expect(await service.repositories(), [root]);
+    service.dispose();
+    client.close();
+  });
+
+  test('stored index and directory variants load as one repository', () async {
+    final directory = Directory(
+      path.join(Directory.current.path, 'build', 'extension-root-load-test'),
+    );
+    await directory.create(recursive: true);
+    addTearDown(() async {
+      if (await directory.exists()) await directory.delete(recursive: true);
+    });
+    await File(
+      path.join(directory.path, 'repositories.json'),
+    ).writeAsString(
+      jsonEncode([
+        'https://repo.example.com/ext/anime_index.json',
+        'https://repo.example.com/ext/',
+        'https://repo.example.com/ext/index.json',
+        'https://repo.example.com/other/custom.json',
+      ]),
+    );
+    final client = MockClient((request) async => http.Response('', 404));
+    final service = MangayomiExtensionService(directory, client: client);
+    expect(await service.repositories(), [
+      Uri.parse('https://repo.example.com/ext/'),
+      Uri.parse('https://repo.example.com/other/custom.json'),
+    ]);
+    service.dispose();
+    client.close();
+  });
+
   test('direct index failure does not save a repository', () async {
     final directory = Directory(
       path.join(Directory.current.path, 'build', 'extension-direct-index-test'),
