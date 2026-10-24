@@ -27,9 +27,22 @@ class MangayomiRepository {
       final existing = unique[source.key];
       if (existing == null) {
         unique[source.key] = source;
-      } else if (jsonEncode(existing.toManifest()) !=
-          jsonEncode(source.toManifest())) {
-        throw const FormatException('Conflicting source in repository index');
+      } else {
+        final existingManifest = existing.toManifest();
+        final sourceManifest = source.toManifest();
+        if (jsonEncode(existingManifest) == jsonEncode(sourceManifest)) {
+          continue;
+        }
+        existingManifest.remove('lang');
+        sourceManifest.remove('lang');
+        if (jsonEncode(existingManifest) != jsonEncode(sourceManifest)) {
+          throw const FormatException('Conflicting source in repository index');
+        }
+        // Some repositories list one multilingual source ID once per language.
+        unique[source.key] = MangayomiSource.fromManifest({
+          ...existing.toManifest(),
+          'lang': 'all',
+        }, url);
       }
     }
     return unique.values.toList();

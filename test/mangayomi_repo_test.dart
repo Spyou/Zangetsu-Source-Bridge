@@ -97,6 +97,16 @@ void main() {
     );
   });
 
+  test('merges duplicate source IDs that differ only by content language', () {
+    final english = entry(1, 1)..['lang'] = 'en';
+    final japanese = entry(1, 1)..['lang'] = 'ja';
+
+    final sources = repo.parseIndex(jsonEncode([english, japanese]));
+
+    expect(sources, hasLength(1));
+    expect(sources.single.language, 'all');
+  });
+
   test('same source in sibling indexes keeps one identity', () {
     final manga = repo.parseIndex(jsonEncode([entry(0, 0)])).single;
     final sibling = MangayomiRepository(

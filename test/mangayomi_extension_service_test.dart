@@ -212,6 +212,71 @@ void main() {
     client.close();
   });
 
+  test(
+    'novel repository add tolerates multilingual anime duplicates',
+    () async {
+      final directory = Directory(
+        path.join(
+          Directory.current.path,
+          'build',
+          'extension-multilingual-index-test',
+        ),
+      );
+      if (await directory.exists()) await directory.delete(recursive: true);
+      addTearDown(() => directory.delete(recursive: true));
+      Map<String, Object> source(int type, String language, int id) => {
+        'id': id,
+        'name': 'Example$id',
+        'baseUrl': 'https://content.example.com',
+        'sourceCodeUrl': 'https://repo.example.com/source$id.js',
+        'version': '1',
+        'itemType': type,
+        'sourceCodeLanguage': 1,
+        'lang': language,
+      };
+      final client = MockClient((request) async {
+        if (request.url.path.endsWith('anime_index.json')) {
+          return http.Response(
+            jsonEncode([source(1, 'en', 100), source(1, 'ja', 100)]),
+            200,
+          );
+        }
+        if (request.url.path.endsWith('novel_index.json')) {
+          return http.Response(jsonEncode([source(2, 'en', 200)]), 200);
+        }
+        return http.Response('', 404);
+      });
+      final service = MangayomiExtensionService(directory, client: client);
+
+      final sources = await service.addRepository(
+        Uri.parse('https://repo.example.com/extensions/novel_index.json'),
+      );
+
+      expect(sources, hasLength(2));
+      expect(
+        sources
+            .singleWhere(
+              (source) => source.contentType == MangayomiContentType.video,
+            )
+            .language,
+        'all',
+      );
+      expect(
+        sources
+            .singleWhere(
+              (source) => source.contentType == MangayomiContentType.novel,
+            )
+            .name,
+        'Example200',
+      );
+      expect(await service.repositories(), [
+        Uri.parse('https://repo.example.com/extensions/'),
+      ]);
+      service.dispose();
+      client.close();
+    },
+  );
+
   test('conflicting entries across repository indexes are rejected', () async {
     final directory = Directory(
       path.join(Directory.current.path, 'build', 'extension-conflict-test'),
@@ -221,9 +286,7 @@ void main() {
       if (await directory.exists()) await directory.delete(recursive: true);
     });
     final client = MockClient((request) async {
-      final version = request.url.pathSegments.last == 'index.json'
-          ? '1'
-          : '2';
+      final version = request.url.pathSegments.last == 'index.json' ? '1' : '2';
       return http.Response(
         jsonEncode([
           {
@@ -306,9 +369,7 @@ void main() {
     addTearDown(() async {
       if (await directory.exists()) await directory.delete(recursive: true);
     });
-    await File(
-      path.join(directory.path, 'repositories.json'),
-    ).writeAsString(
+    await File(path.join(directory.path, 'repositories.json')).writeAsString(
       jsonEncode([
         'https://repo.example.com/ext/anime_index.json',
         'https://repo.example.com/ext/',
