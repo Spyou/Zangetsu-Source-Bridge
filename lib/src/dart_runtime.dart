@@ -4,6 +4,8 @@ import 'dart:io';
 import 'package:d4rt/d4rt.dart';
 import 'package:html/parser.dart' as html_parser;
 import 'package:http/http.dart' as http;
+import 'package:intl/date_symbol_data_local.dart';
+import 'package:intl/intl.dart';
 
 import 'crypto.dart';
 import 'cloudflare_http.dart';
@@ -1014,6 +1016,10 @@ void _registerFunctions(D4rt interpreter, Map<String, dynamic> preferences) {
     (_, p, n, _) => _parseStatus(p[0] as String, p[1] as List),
   );
   interpreter.registertopLevelFunction(
+    'parseDates',
+    (_, p, n, _) => _parseDates(p[0] as List, p[1] as String, p[2] as String),
+  );
+  interpreter.registertopLevelFunction(
     'parseHtml',
     (_, p, n, _) => MDocument.parse(p[0] as String),
   );
@@ -1055,6 +1061,48 @@ String _substringBefore(String text, String pattern) {
 String _substringBeforeLast(String text, String pattern) {
   final index = text.lastIndexOf(pattern);
   return index == -1 ? text : text.substring(0, index);
+}
+
+List<String> _parseDates(List values, String pattern, String locale) {
+  DateFormat? formatter;
+  if (pattern.isNotEmpty) {
+    try {
+      final localeTag = locale.isEmpty
+          ? ''
+          : Intl.canonicalizedLocale(locale.replaceAll('-', '_'));
+      if (localeTag.isNotEmpty) initializeDateFormatting(localeTag);
+      formatter = DateFormat(pattern, localeTag.isEmpty ? null : localeTag);
+    } catch (_) {}
+  }
+
+  final fallback = DateTime.now().millisecondsSinceEpoch.toString();
+  return [
+    for (final value in values)
+      if (value != null && value.toString().trim().isNotEmpty)
+        (_parseChapterDate(
+              value.toString().trim(),
+              formatter,
+            )?.millisecondsSinceEpoch.toString() ??
+            fallback),
+  ];
+}
+
+DateTime? _parseChapterDate(String value, DateFormat? formatter) {
+  final timestamp = int.tryParse(value);
+  if (timestamp != null) {
+    return DateTime.fromMillisecondsSinceEpoch(
+      value.length > 10 ? timestamp : timestamp * 1000,
+    );
+  }
+
+  final isoDate = DateTime.tryParse(value);
+  if (isoDate != null) return isoDate;
+
+  try {
+    return formatter?.parse(value);
+  } catch (_) {
+    return null;
+  }
 }
 
 MStatus _parseStatus(String status, List statusList) {

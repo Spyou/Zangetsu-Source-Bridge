@@ -112,4 +112,33 @@ Fixture main(MSource source) => Fixture(source);
       '<p>Chapter text</p>',
     );
   });
+
+  test('Dart source can parse chapter dates from its detail page', () async {
+    final runtime = DartSourceRuntime(
+      MSource(id: 4, name: 'Fixture', baseUrl: 'https://example.com'),
+      '''
+import 'package:mangayomi/bridge_lib.dart';
+class Fixture extends MProvider {
+  Fixture(this.source);
+  MSource source;
+  Future<MManga> getDetail(String url) async {
+    final dates = parseDates(['October 14, 2026'], 'MMMM dd, yyyy', 'en_us');
+    return MManga(name: 'Fixture', link: url, description: dates[0]);
+  }
+}
+Fixture main(MSource source) => Fixture(source);
+''',
+    );
+    addTearDown(runtime.dispose);
+
+    final detail = await runtime.getDetail('/manga/fixture');
+
+    final parsed = DateTime.fromMillisecondsSinceEpoch(
+      int.parse(detail.description!),
+    );
+    expect(
+      DateTime(parsed.year, parsed.month, parsed.day),
+      DateTime(2026, 10, 14),
+    );
+  });
 }
