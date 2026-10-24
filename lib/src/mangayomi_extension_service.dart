@@ -87,6 +87,7 @@ class MangayomiExtensionService {
             for (final name in [
               'index.json',
               'anime_index.json',
+              'manga_index.json',
               'novel_index.json',
             ])
               url.replace(
@@ -101,10 +102,16 @@ class MangayomiExtensionService {
         final entries = await fetchIndex(index);
         foundIndex = true;
         for (final source in entries) {
-          if (sources.containsKey(source.key)) {
-            throw FormatException('Duplicate source ${source.name}');
+          // Repos overlap: index.json often repeats sources that also live in
+          // the per-type index files. Identical repeats merge silently; a
+          // genuinely different manifest under the same key is a broken repo.
+          final existing = sources[source.key];
+          if (existing == null) {
+            sources[source.key] = source;
+          } else if (jsonEncode(existing.toManifest()) !=
+              jsonEncode(source.toManifest())) {
+            throw FormatException('Conflicting source ${source.name}');
           }
-          sources[source.key] = source;
         }
       } on HttpException catch (error) {
         if (error.message != 'Download failed (404)' || indexes.length == 1) {

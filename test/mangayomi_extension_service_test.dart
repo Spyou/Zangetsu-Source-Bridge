@@ -178,6 +178,83 @@ void main() {
     },
   );
 
+  test('repository root finds manga held only in manga_index.json', () async {
+    final directory = Directory(
+      path.join(Directory.current.path, 'build', 'extension-manga-index-test'),
+    );
+    if (await directory.exists()) await directory.delete(recursive: true);
+    addTearDown(() => directory.delete(recursive: true));
+    final client = MockClient((request) async {
+      if (request.url.path.endsWith('manga_index.json')) {
+        return http.Response(
+          jsonEncode([
+            {
+              'id': 123,
+              'name': 'MangaOnly',
+              'baseUrl': 'https://manga.example.com',
+              'sourceCodeUrl': 'https://repo.example.com/source.js',
+              'version': '1',
+              'itemType': 0,
+              'sourceCodeLanguage': 1,
+              'lang': 'en',
+            },
+          ]),
+          200,
+        );
+      }
+      return http.Response('', 404);
+    });
+    final service = MangayomiExtensionService(directory, client: client);
+    final url = Uri.parse('https://repo.example.com/extensions/');
+    final sources = await service.addRepository(url);
+    expect(sources.single.contentType, MangayomiContentType.manga);
+    service.dispose();
+    client.close();
+  });
+
+  test('conflicting entries across repository indexes are rejected', () async {
+    final directory = Directory(
+      path.join(Directory.current.path, 'build', 'extension-conflict-test'),
+    );
+    if (await directory.exists()) await directory.delete(recursive: true);
+    addTearDown(() async {
+      if (await directory.exists()) await directory.delete(recursive: true);
+    });
+    final client = MockClient((request) async {
+      final version = request.url.pathSegments.last == 'index.json'
+          ? '1'
+          : '2';
+      return http.Response(
+        jsonEncode([
+          {
+            'id': 123,
+            'name': 'Example',
+            'baseUrl': 'https://content.example.com',
+            'sourceCodeUrl': 'https://repo.example.com/source.js',
+            'version': version,
+            'itemType': 0,
+            'sourceCodeLanguage': 1,
+            'lang': 'en',
+          },
+        ]),
+        200,
+      );
+    });
+    final service = MangayomiExtensionService(directory, client: client);
+    await expectLater(
+      service.refreshRepository(Uri.parse('https://repo.example.com/ext/')),
+      throwsA(
+        isA<FormatException>().having(
+          (e) => e.message,
+          'message',
+          contains('Conflicting source'),
+        ),
+      ),
+    );
+    service.dispose();
+    client.close();
+  });
+
   test('direct index failure does not save a repository', () async {
     final directory = Directory(
       path.join(Directory.current.path, 'build', 'extension-direct-index-test'),
