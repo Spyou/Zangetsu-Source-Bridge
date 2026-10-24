@@ -22,9 +22,16 @@ class MangayomiRepository {
         else
           throw FormatException('Invalid source at index $index'),
     ];
-    if (sources.map((source) => source.key).toSet().length != sources.length) {
-      throw const FormatException('Duplicate source in repository index');
+    final unique = <String, MangayomiSource>{};
+    for (final source in sources) {
+      final existing = unique[source.key];
+      if (existing == null) {
+        unique[source.key] = source;
+      } else if (jsonEncode(existing.toManifest()) !=
+          jsonEncode(source.toManifest())) {
+        throw const FormatException('Conflicting source in repository index');
+      }
     }
-    return sources;
+    return unique.values.toList();
   }
 }

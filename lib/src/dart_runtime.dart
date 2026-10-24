@@ -6,16 +6,19 @@ import 'package:html/parser.dart' as html_parser;
 import 'package:http/http.dart' as http;
 
 import 'crypto.dart';
+import 'cloudflare_http.dart';
 import 'html.dart';
+import 'mangayomi_config.dart';
 import 'models.dart';
 
 const _bridgeLibrary = 'package:mangayomi/bridge_lib.dart';
 
 class BridgeClient {
-  BridgeClient([this.source]);
+  BridgeClient([this.source])
+    : _client = MangayomiHttpClient(protected: source?.hasCloudflare == true);
 
   final MSource? source;
-  final http.Client _client = http.Client();
+  final http.Client _client;
 
   Future<http.Response> head(Uri url, {Map? headers}) =>
       _client.head(url, headers: _headers(headers));
@@ -97,7 +100,7 @@ class DartSourceRuntime {
     this.source,
     this.sourceCode, {
     Map<String, dynamic>? preferences,
-  }) : preferences = preferences ?? {};
+  }) : preferences = Map.of(preferences ?? const {});
 
   final MSource source;
   final String sourceCode;
@@ -107,6 +110,7 @@ class DartSourceRuntime {
   final List<BridgeClient> _clients = [];
   bool _initialized = false;
   bool _disposed = false;
+  bool _defaultsSeeded = false;
 
   void init() {
     if (_disposed) throw StateError('Dart runtime has been disposed');
@@ -121,6 +125,23 @@ class DartSourceRuntime {
 
   Future<T> invoke<T>(String method, [List<Object?> args = const []]) async {
     init();
+    if (!_defaultsSeeded) {
+      _defaultsSeeded = true;
+      try {
+        final declared = await _interpreter.invoke('getSourcePreferences', []);
+        if (declared is List) {
+          for (final item in declared) {
+            final pref = preferenceMap(item);
+            final key = pref['key'];
+            if (key is String && pref['value'] != null) {
+              preferences.putIfAbsent(key, () => pref['value']);
+            }
+          }
+        }
+      } catch (_) {
+        // Sources without settings still run normally.
+      }
+    }
     final result = await _interpreter.invoke(method, args);
     if (result is T) return result;
     if (result is List && T == List<MVideo>) {
@@ -444,7 +465,7 @@ void _registerBridge(
       constructors: {
         '': (_, positionalArgs, namedArgs) {
           final client = BridgeClient(
-            positionalArgs.isNotEmpty ? positionalArgs[0] as MSource : null,
+            positionalArgs.isNotEmpty ? positionalArgs[0] as MSource : source,
           );
           clients.add(client);
           return client;
@@ -614,7 +635,88 @@ void _registerBridge(
   );
 
   _registerFilters(interpreter);
+  _registerPreferences(interpreter);
   _registerFunctions(interpreter, preferences);
+}
+
+void _registerPreferences(D4rt interpreter) {
+  void register(BridgedClass bridged) =>
+      interpreter.registerBridgedClass(bridged, _bridgeLibrary);
+
+  register(
+    BridgedClass(
+      nativeType: ListPreference,
+      name: 'ListPreference',
+      constructors: {
+        '': (_, p, n) => ListPreference(
+          key: n.get<String?>('key'),
+          title: n.get<String?>('title'),
+          summary: n.get<String?>('summary'),
+          valueIndex: n.get<int?>('valueIndex'),
+          entries: (n.get<List?>('entries'))?.cast<String>(),
+          entryValues: (n.get<List?>('entryValues'))?.cast<String>(),
+        ),
+      },
+    ),
+  );
+  register(
+    BridgedClass(
+      nativeType: EditTextPreference,
+      name: 'EditTextPreference',
+      constructors: {
+        '': (_, p, n) => EditTextPreference(
+          key: n.get<String?>('key'),
+          title: n.get<String?>('title'),
+          summary: n.get<String?>('summary'),
+          value: n.get<String?>('value'),
+        ),
+      },
+    ),
+  );
+  register(
+    BridgedClass(
+      nativeType: SwitchPreferenceCompat,
+      name: 'SwitchPreferenceCompat',
+      constructors: {
+        '': (_, p, n) => SwitchPreferenceCompat(
+          key: n.get<String?>('key'),
+          title: n.get<String?>('title'),
+          summary: n.get<String?>('summary'),
+          value: n.get<bool?>('value'),
+        ),
+      },
+    ),
+  );
+  register(
+    BridgedClass(
+      nativeType: CheckBoxPreference,
+      name: 'CheckBoxPreference',
+      constructors: {
+        '': (_, p, n) => CheckBoxPreference(
+          key: n.get<String?>('key'),
+          title: n.get<String?>('title'),
+          summary: n.get<String?>('summary'),
+          value: n.get<bool?>('value'),
+        ),
+      },
+    ),
+  );
+  register(
+    BridgedClass(
+      nativeType: MultiSelectListPreference,
+      name: 'MultiSelectListPreference',
+      constructors: {
+        '': (_, p, n) => MultiSelectListPreference(
+          key: n.get<String?>('key'),
+          title: n.get<String?>('title'),
+          summary: n.get<String?>('summary'),
+          entries: (n.get<List?>('entries'))?.cast<String>(),
+          entryValues: (n.get<List?>('entryValues'))?.cast<String>(),
+          values: (n.get<List?>('values'))?.cast<String>(),
+        ),
+      },
+    ),
+  );
 }
 
 void _registerFilters(D4rt interpreter) {

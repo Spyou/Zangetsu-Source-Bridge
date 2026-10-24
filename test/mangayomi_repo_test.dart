@@ -31,6 +31,14 @@ void main() {
     );
   });
 
+  test('accepts signed source IDs from anime repository indexes', () {
+    final sources = repo.parseIndex(
+      jsonEncode([entry(1, 1)..['id'] = -228451656]),
+    );
+    expect(sources.single.id, -228451656);
+    expect(sources.single.key, endsWith(':-228451656'));
+  });
+
   test('rejects unsafe code URLs and unknown source types', () {
     expect(
       () => repo.parseIndex(
@@ -73,12 +81,18 @@ void main() {
     );
   });
 
-  test('identity includes code language and duplicate entries fail', () {
+  test('identity includes code language and duplicate entries are safe', () {
     final dart = repo.parseIndex(jsonEncode([entry(0, 0)])).single;
     final javascript = repo.parseIndex(jsonEncode([entry(0, 1)])).single;
     expect(dart.key, isNot(javascript.key));
     expect(
-      () => repo.parseIndex(jsonEncode([entry(0, 0), entry(0, 0)])),
+      repo.parseIndex(jsonEncode([entry(0, 0), entry(0, 0)])),
+      hasLength(1),
+    );
+    expect(
+      () => repo.parseIndex(
+        jsonEncode([entry(0, 0), entry(0, 0)..['name'] = 'Conflicting']),
+      ),
       throwsFormatException,
     );
   });

@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 
 import 'dart_runtime.dart';
 import 'js_runtime.dart';
+import 'mangayomi_config.dart';
 import 'mangayomi_source.dart';
 import 'models.dart';
 
@@ -110,8 +111,13 @@ class MangayomiRuntimeWorker {
 
   Future<MPages> getPopular(int page) => call('getPopular', [page]);
   Future<MPages> getLatestUpdates(int page) => call('getLatestUpdates', [page]);
-  Future<MPages> search(String query, int page) =>
-      call('search', [query, page]);
+  Future<MPages> search(
+    String query,
+    int page, [
+    List<dynamic> filters = const [],
+  ]) => call('search', [query, page, filters]);
+  Future<List<dynamic>> getFilterList() => call('getFilterList');
+  Future<List<dynamic>> getSourcePreferences() => call('getSourcePreferences');
   Future<MManga> getDetail(String url) => call('getDetail', [url]);
   Future<List<MVideo>> getVideoList(String url) => call('getVideoList', [url]);
   Future<List<MPage>> getPageList(String url) => call('getPageList', [url]);
@@ -228,8 +234,30 @@ Future<Object?> _invoke(
           : dart!.getLatestUpdates(args[0] as int),
     'search' =>
       runtime is JsSourceRuntime
-          ? runtime.search(args[0] as String, args[1] as int)
-          : dart!.search(args[0] as String, args[1] as int),
+          ? runtime.search(args[0] as String, args[1] as int, args[2] as List)
+          : dart!.search(
+              args[0] as String,
+              args[1] as int,
+              (args[2] as List)
+                  .map((e) => dartFilter(Map<String, dynamic>.from(e as Map)))
+                  .toList(),
+            ),
+    'getFilterList' =>
+      runtime is JsSourceRuntime
+          ? runtime
+                .call<List<dynamic>>('getFilterList()')
+                .then((items) => items.map(filterMap).toList())
+          : dart!
+                .invoke<List<dynamic>>('getFilterList')
+                .then((items) => items.map(filterMap).toList()),
+    'getSourcePreferences' =>
+      runtime is JsSourceRuntime
+          ? runtime
+                .call<List<dynamic>>('getSourcePreferences()')
+                .then((items) => items.map(preferenceMap).toList())
+          : dart!
+                .invoke<List<dynamic>>('getSourcePreferences')
+                .then((items) => items.map(preferenceMap).toList()),
     'getDetail' =>
       runtime is JsSourceRuntime
           ? runtime.getDetail(args[0] as String)

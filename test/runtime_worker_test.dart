@@ -7,6 +7,77 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   final source = MSource(id: 1, name: 'Proof', baseUrl: 'https://example.com');
 
+  test(
+    'JavaScript worker exposes settings and passes selected filters',
+    () async {
+      final worker = MangayomiRuntimeWorker(
+        source,
+        '''
+class DefaultExtension extends MProvider {
+  getSourcePreferences() { return [{key: 'server', listPreference: {title: 'Server', entries: ['A', 'B'], entryValues: ['a', 'b'], valueIndex: 0}}]; }
+  getFilterList() { return [{type_name: 'SelectFilter', type: 'genre', name: 'Genre', state: 0, values: [{name: 'All', value: ''}, {name: 'Action', value: 'action'}]}]; }
+  async search(query, page, filters) { return {list: [{name: filters[0].values[filters[0].state].name, link: '/item'}], hasNextPage: false}; }
+}
+''',
+        MangayomiCodeLanguage.javascript,
+        preferences: {'server': 'b'},
+      );
+      addTearDown(worker.dispose);
+      expect((await worker.getSourcePreferences()).single['key'], 'server');
+      final filters = await worker.getFilterList();
+      filters.single['state'] = 1;
+      expect((await worker.search('', 1, filters)).list.single.name, 'Action');
+    },
+  );
+
+  test('Dart worker exposes source settings and filters', () async {
+    final worker = MangayomiRuntimeWorker(source, '''
+import 'package:mangayomi/bridge_lib.dart';
+class Proof extends MProvider {
+  Proof(this.source);
+  MSource source;
+  List<dynamic> getSourcePreferences() => [ListPreference(key: 'quality', title: 'Quality', valueIndex: 0, entries: ['High'], entryValues: ['high'])];
+  List<dynamic> getFilterList() => [SelectFilter('genre', 'Genre', 0, [SelectFilterOption('All', ''), SelectFilterOption('Action', 'action')])];
+  Future<MPages> search(String query, int page, FilterList filters) async => MPages([], false);
+}
+Proof main(MSource source) => Proof(source);
+''', MangayomiCodeLanguage.dart);
+    addTearDown(worker.dispose);
+    expect((await worker.getSourcePreferences()).single['key'], 'quality');
+    final filters = await worker.getFilterList();
+    filters.single['state'] = 1;
+    expect((await worker.search('', 1, filters)).list, isEmpty);
+  });
+
+  test('Dart source uses its default setting and saved override', () async {
+    const code = '''
+import 'package:mangayomi/bridge_lib.dart';
+class Proof extends MProvider {
+  Proof(this.source);
+  MSource source;
+  List<dynamic> getSourcePreferences() => [ListPreference(key: 'server', title: 'Server', valueIndex: 0, entries: ['A', 'B'], entryValues: ['a', 'b'])];
+  Future<String> getHtmlContent(String name, String url) async => getPreferenceValue(source.id, 'server');
+}
+Proof main(MSource source) => Proof(source);
+''';
+    final initial = MangayomiRuntimeWorker(
+      source,
+      code,
+      MangayomiCodeLanguage.dart,
+    );
+    addTearDown(initial.dispose);
+    expect((await initial.getSourcePreferences()).single['value'], 'a');
+    expect(await initial.getHtmlContent('', ''), 'a');
+    final saved = MangayomiRuntimeWorker(
+      source,
+      code,
+      MangayomiCodeLanguage.dart,
+      preferences: {'server': 'b'},
+    );
+    addTearDown(saved.dispose);
+    expect(await saved.getHtmlContent('', ''), 'b');
+  });
+
   test('JavaScript worker returns source results', () async {
     final worker = MangayomiRuntimeWorker(source, '''
 class DefaultExtension extends MProvider {

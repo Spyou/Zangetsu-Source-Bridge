@@ -6,6 +6,7 @@ import 'package:flutter_js/flutter_js.dart';
 import 'package:http/http.dart' as http;
 
 import 'html.dart';
+import 'cloudflare_http.dart';
 import 'models.dart';
 
 class JsSourceRuntime {
@@ -13,7 +14,7 @@ class JsSourceRuntime {
     this.source,
     this.sourceCode, {
     Map<String, dynamic>? preferences,
-  }) : preferences = preferences ?? {};
+  }) : preferences = Map.of(preferences ?? const {});
 
   final MSource source;
   final String sourceCode;
@@ -33,7 +34,7 @@ class JsSourceRuntime {
     if (_initialized) return;
     final rt = getJavascriptRuntime(xhr: false);
     _runtime = rt;
-    _http = _JsHttp(rt)..init();
+    _http = _JsHttp(rt, source)..init();
     _JsDom(rt).init();
     _JsPrefs(rt, preferences).init();
     _registerCommon(rt);
@@ -61,10 +62,11 @@ class JsSourceRuntime {
         if (key == null) continue;
         final edit = item['editTextPreference'];
         final listPref = item['listPreference'];
+        final multiPref = item['multiSelectListPreference'];
         final switchPref = item['switchPreferenceCompat'];
         final checkPref = item['checkBoxPreference'];
         if (edit is Map && edit['value'] != null) {
-          preferences[key] = edit['value'];
+          preferences.putIfAbsent(key, () => edit['value']);
         } else if (listPref is Map) {
           final values = listPref['entryValues'];
           final index = listPref['valueIndex'] ?? 0;
@@ -72,12 +74,14 @@ class JsSourceRuntime {
               index is int &&
               index >= 0 &&
               index < values.length) {
-            preferences[key] = values[index];
+            preferences.putIfAbsent(key, () => values[index]);
           }
+        } else if (multiPref is Map) {
+          preferences.putIfAbsent(key, () => multiPref['values'] ?? const []);
         } else if (switchPref is Map) {
-          preferences[key] = switchPref['value'] ?? false;
+          preferences.putIfAbsent(key, () => switchPref['value'] ?? false);
         } else if (checkPref is Map) {
-          preferences[key] = checkPref['value'] ?? false;
+          preferences.putIfAbsent(key, () => checkPref['value'] ?? false);
         }
       }
     } catch (_) {}
@@ -313,9 +317,10 @@ void _eval(JavascriptRuntime rt, String code, String what) {
 }
 
 class _JsHttp {
-  _JsHttp(this.rt);
+  _JsHttp(this.rt, MSource source)
+    : _client = MangayomiHttpClient(protected: source.hasCloudflare ?? false);
   final JavascriptRuntime rt;
-  final http.Client _client = http.Client();
+  final http.Client _client;
 
   void close() => _client.close();
 

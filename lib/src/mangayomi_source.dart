@@ -85,7 +85,7 @@ class MangayomiSource {
     final type = data['itemType'];
     final language = data['sourceCodeLanguage'];
     if (id is! int ||
-        id <= 0 ||
+        id == 0 ||
         type is! int ||
         type < 0 ||
         type > 2 ||

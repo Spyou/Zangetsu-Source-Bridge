@@ -294,3 +294,21 @@ class CheckBoxPreference {
 
   CheckBoxPreference({this.key, this.title, this.summary, this.value});
 }
+
+class MultiSelectListPreference {
+  String? key;
+  String? title;
+  String? summary;
+  List<String>? entries;
+  List<String>? entryValues;
+  List<String>? values;
+
+  MultiSelectListPreference({
+    this.key,
+    this.title,
+    this.summary,
+    this.entries,
+    this.entryValues,
+    this.values,
+  });
+}
