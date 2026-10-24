@@ -171,7 +171,19 @@ class MangayomiExtensionService {
 
   Future<InstalledMangayomiSource> install(MangayomiSource source) async {
     await _load();
-    final code = await _download(source.codeUrl, 2 * 1024 * 1024);
+    final codeUrl =
+        source.codeLanguage == MangayomiCodeLanguage.javascript &&
+            source.codeUrl.path.endsWith('/javascript/')
+        ? source.codeUrl.resolve(
+            '${switch (source.contentType) {
+              MangayomiContentType.video => 'anime',
+              MangayomiContentType.manga => 'manga',
+              MangayomiContentType.novel => 'novel',
+            }}/src/${source.language}/${Uri.encodeComponent(source.name)}.js',
+          )
+        : source.codeUrl;
+    // shortcut: supports the standard Mangayomi JS tree only; add another layout when a repo uses one.
+    final code = await _download(codeUrl, 2 * 1024 * 1024);
     if (code.isEmpty) throw const FormatException('Empty source code');
     final digest = sha256.convert(code).toString();
     final file = File(path.join(directory.path, '$digest.source'));

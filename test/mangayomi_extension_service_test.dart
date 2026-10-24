@@ -8,6 +8,55 @@ import 'package:path/path.dart' as path;
 import 'package:zangetsu_source_bridge/zangetsu_source_bridge.dart';
 
 void main() {
+  test('installs JavaScript source from repository directory URL', () async {
+    final directory = Directory(
+      path.join(
+        Directory.current.path,
+        'build',
+        'extension-directory-code-test',
+      ),
+    );
+    if (await directory.exists()) await directory.delete(recursive: true);
+    addTearDown(() => directory.delete(recursive: true));
+    final requested = <Uri>[];
+    final client = MockClient((request) async {
+      requested.add(request.url);
+      if (request.url.path.endsWith('/javascript/')) {
+        return http.Response('', 404);
+      }
+      if (request.url.path.endsWith('/javascript/novel/src/en/NovelFire.js')) {
+        return http.Response('class DefaultExtension {}', 200);
+      }
+      return http.Response('', 404);
+    });
+    final repository = Uri.parse('https://repo.example.com/novel_index.json');
+    final source = MangayomiSource.fromManifest({
+      'id': 123,
+      'name': 'NovelFire',
+      'baseUrl': 'https://novelfire.example.com',
+      'sourceCodeUrl': 'https://repo.example.com/javascript/',
+      'version': '1',
+      'itemType': 2,
+      'sourceCodeLanguage': 1,
+      'lang': 'en',
+    }, repository);
+    final service = MangayomiExtensionService(directory, client: client);
+
+    final installed = await service.install(source);
+
+    expect(
+      await installed.codeFile.readAsString(),
+      'class DefaultExtension {}',
+    );
+    expect(requested, [
+      Uri.parse(
+        'https://repo.example.com/javascript/novel/src/en/NovelFire.js',
+      ),
+    ]);
+    service.dispose();
+    client.close();
+  });
+
   test(
     'install survives restart, update replaces code, uninstall removes it',
     () async {
