@@ -301,25 +301,10 @@ void main() {
         Uri.parse('https://repo.example.com/extensions/novel_index.json'),
       );
 
-      expect(sources, hasLength(2));
-      expect(
-        sources
-            .singleWhere(
-              (source) => source.contentType == MangayomiContentType.video,
-            )
-            .language,
-        'all',
-      );
-      expect(
-        sources
-            .singleWhere(
-              (source) => source.contentType == MangayomiContentType.novel,
-            )
-            .name,
-        'Example200',
-      );
+      expect(sources, hasLength(1));
+      expect(sources.single.contentType, MangayomiContentType.novel);
       expect(await service.repositories(), [
-        Uri.parse('https://repo.example.com/extensions/'),
+        Uri.parse('https://repo.example.com/extensions/novel_index.json'),
       ]);
       service.dispose();
       client.close();
@@ -367,7 +352,7 @@ void main() {
     client.close();
   });
 
-  test('index file URLs of one repository collapse to a single root', () async {
+  test('index file URLs are saved separately', () async {
     final directory = Directory(
       path.join(Directory.current.path, 'build', 'extension-root-add-test'),
     );
@@ -394,23 +379,21 @@ void main() {
       );
     });
     final service = MangayomiExtensionService(directory, client: client);
-    final root = Uri.parse('https://repo.example.com/ext/');
+    final anime = Uri.parse('https://repo.example.com/ext/anime_index.json');
+    final manga = Uri.parse('https://repo.example.com/ext/index.json');
     final sources = await service.addRepository(
-      Uri.parse('https://repo.example.com/ext/anime_index.json'),
+      anime,
     );
-    expect(sources.map((s) => s.contentType).toSet(), {
-      MangayomiContentType.manga,
-      MangayomiContentType.video,
-    });
-    await service.addRepository(
-      Uri.parse('https://repo.example.com/ext/index.json'),
-    );
-    expect(await service.repositories(), [root]);
+    expect(sources.single.contentType, MangayomiContentType.video);
+    await service.addRepository(manga);
+    expect(await service.repositories(), [anime, manga]);
+    await service.removeRepository(anime);
+    expect(await service.repositories(), [manga]);
     service.dispose();
     client.close();
   });
 
-  test('stored index and directory variants load as one repository', () async {
+  test('stored index and directory variants remain separate', () async {
     final directory = Directory(
       path.join(Directory.current.path, 'build', 'extension-root-load-test'),
     );
@@ -429,7 +412,9 @@ void main() {
     final client = MockClient((request) async => http.Response('', 404));
     final service = MangayomiExtensionService(directory, client: client);
     expect(await service.repositories(), [
+      Uri.parse('https://repo.example.com/ext/anime_index.json'),
       Uri.parse('https://repo.example.com/ext/'),
+      Uri.parse('https://repo.example.com/ext/index.json'),
       Uri.parse('https://repo.example.com/other/custom.json'),
     ]);
     service.dispose();
