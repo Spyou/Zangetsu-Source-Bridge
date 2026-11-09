@@ -79,6 +79,7 @@ class StremioClient {
           name: name,
           poster: _str(raw['poster']),
           background: _str(raw['background']),
+          logo: _str(raw['logo']),
           releaseInfo: _str(raw['releaseInfo']),
           description: _str(raw['description']),
         ),
