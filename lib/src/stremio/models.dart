@@ -108,7 +108,6 @@ class StremioMetaPreview {
     required this.name,
     this.poster,
     this.background,
-    this.logo,
     this.releaseInfo,
     this.description,
   });
@@ -118,7 +117,6 @@ class StremioMetaPreview {
   final String name;
   final String? poster;
   final String? background;
-  final String? logo;
   final String? releaseInfo;
   final String? description;
 }

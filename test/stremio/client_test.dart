@@ -109,18 +109,6 @@ void main() {
   });
 
   group('requests', () {
-    test('catalogues preserve optional title logos', () async {
-      final body = jsonDecode(fixture('catalog_page.json')) as Map;
-      (body['metas'] as List).first['logo'] = 'https://img.example/title.png';
-      final page = await clientFor([], jsonEncode(body)).catalog(
-        Uri.parse('https://addon.example'),
-        type: 'movie',
-        catalogId: 'top',
-      );
-      expect(page.metas.first.logo, 'https://img.example/title.png');
-      expect(page.metas.last.logo, isNull);
-    });
-
     test('catalogue extras keep their encoding and base query', () async {
       final requests = <http.Request>[];
       final client = clientFor(requests, fixture('catalog_page.json'));
