@@ -1,6 +1,7 @@
 library;
 
 export 'src/models.dart';
+export 'stremio.dart';
 export 'src/html.dart' show MDocument, MElement;
 export 'src/js_runtime.dart' show JsSourceRuntime;
 export 'src/dart_runtime.dart' show DartSourceRuntime;

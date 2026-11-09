@@ -1,0 +1,31 @@
+{
+  "id": "org.example.addon",
+  "version": "1.2.3",
+  "name": "Example Addon",
+  "description": "Two catalogues and every resource",
+  "resources": [
+    "catalog",
+    { "name": "meta", "types": ["movie"], "idPrefixes": ["tt"] },
+    "stream",
+    "subtitles"
+  ],
+  "types": ["movie", "series"],
+  "idPrefixes": ["tt", "tmdb:"],
+  "catalogs": [
+    {
+      "type": "movie",
+      "id": "top",
+      "name": "Top Movies",
+      "extra": [
+        { "name": "search", "isRequired": true },
+        { "name": "skip", "isRequired": false },
+        { "name": "genre", "isRequired": false, "options": ["Action", "Drama"] }
+      ]
+    },
+    { "type": "series", "id": "airing", "name": "Airing", "extraSupported": ["search", "skip"] }
+  ],
+  "behaviorHints": {
+    "configurable": true,
+    "configurationURL": "/setup"
+  }
+}

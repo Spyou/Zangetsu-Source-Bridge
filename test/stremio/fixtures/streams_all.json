@@ -1,0 +1,17 @@
+{ "streams": [
+  { "name": "4K", "title": "WEB-DL · 12GB", "url": "https://cdn.example/movie.m3u8",
+    "behaviorHints": { "proxyHeaders": { "request": { "Referer": "https://site/", "User-Agent": "TestUA" } },
+      "filename": "movie.1080p.mkv", "videoHash": "abc", "videoSize": 1234 },
+    "subtitles": [ { "id": "s1", "url": "https://subs.example/en.srt", "lang": "English" } ] },
+  { "name": "Torrentio", "title": "1080p · 42 seeders",
+    "infoHash": "0123456789ABCDEF0123456789ABCDEF01234567", "fileIdx": 0,
+    "sources": ["tracker:udp://tracker.example:1337/announce"] },
+  { "name": "Torrentio", "title": "720p pack",
+    "infoHash": "0123456789abcdef0123456789abcdef01234567", "fileIdx": 3 },
+  { "name": "Magnet", "url": "magnet:?xt=urn:btih:89ABCDEF0123456789ABCDEF0123456789ABCDEF&tr=udp%3A%2F%2Ftracker.example%3A1337%2Fannounce", "fileIdx": 2 },
+  { "name": "YouTube", "ytId": "dQw4w9WgXcQ" },
+  { "name": "Browser", "externalUrl": "https://site.example/watch/1" },
+  { "name": "No sources", "title": "No sources found" },
+  { "name": "Broken", "infoHash": "not-a-hash" },
+  { "name": "Fractional", "infoHash": "0123456789abcdef0123456789abcdef01234567", "fileIdx": 1.5 }
+] }

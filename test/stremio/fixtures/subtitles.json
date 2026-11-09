@@ -1,0 +1,5 @@
+{ "subtitles": [
+  { "id": "s1", "url": "https://subs.example/en.srt", "lang": "English" },
+  { "id": "s2", "url": "https://subs.example/hi.vtt", "lang": "Hindi" },
+  { "id": "bad", "url": "ftp://subs.example/x.srt", "lang": "Broken" }
+] }

@@ -1,0 +1,20 @@
+{ "meta": {
+  "id": "tt0944947", "type": "series", "name": "Game of Thrones",
+  "poster": "https://img.example/poster.jpg",
+  "background": "https://img.example/bg.jpg",
+  "logo": "https://img.example/logo.png",
+  "description": "Noble families fight for the Iron Throne.",
+  "releaseInfo": "2011-2019", "imdbRating": "9.2", "runtime": "57 min",
+  "genres": ["Drama", "Fantasy"], "defaultVideoId": "tt0944947:1:1",
+  "imdb_id": "tt0944947",
+  "videos": [
+    { "id": "tt0944947:0:1", "title": "Special", "season": 0, "episode": 1 },
+    { "id": "tt0944947:1:1", "title": "Winter Is Coming", "season": 1, "episode": 1,
+      "thumbnail": "https://img.example/1.jpg", "released": "2011-04-17T00:00:00.000Z",
+      "streams": [
+        { "name": "Inline", "url": "https://cdn.example/inline.m3u8",
+          "behaviorHints": { "proxyHeaders": { "request": { "Referer": "https://inline/" } } } }
+      ] },
+    { "id": "tt0944947:1:2", "title": "The Kingsroad", "season": 1, "episode": 2 }
+  ]
+} }

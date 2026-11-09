@@ -1,0 +1,8 @@
+{ "metas": [
+  { "id": "tt0372784", "type": "movie", "name": "Batman Begins",
+    "poster": "https://img.example/bb.jpg", "releaseInfo": "2005",
+    "description": "Bruce Wayne becomes Batman." },
+  { "id": "tmdb:12345", "type": "movie", "name": "Example Film",
+    "poster": "https://img.example/ef.jpg" },
+  { "name": "Missing id" }
+] }
