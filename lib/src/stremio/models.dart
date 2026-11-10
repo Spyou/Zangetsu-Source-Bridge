@@ -216,6 +216,7 @@ class StremioStream {
     this.headers = const {},
     this.trackers = const [],
     this.fileName,
+    this.bingeGroup,
     this.videoHash,
     this.videoSize,
     this.subtitles = const [],
@@ -239,6 +240,9 @@ class StremioStream {
   final Map<String, String> headers;
   final List<String> trackers;
   final String? fileName;
+  /// Addon-supplied hint for matching this stream across episodes
+  /// (`behaviorHints.bingeGroup`). Same group = same release family.
+  final String? bingeGroup;
   final String? videoHash;
   final int? videoSize;
   final List<StremioSubtitle> subtitles;

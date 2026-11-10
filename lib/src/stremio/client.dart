@@ -491,6 +491,7 @@ class StremioClient {
     final name = _str(raw['name']);
     final description = _str(raw['title']);
     final fileName = _str(hintMap['filename']);
+    final bingeGroup = _str(hintMap['bingeGroup']);
     final videoHash = _str(hintMap['videoHash']);
     final videoSize = _int(hintMap['videoSize']);
 
@@ -521,6 +522,7 @@ class StremioClient {
       headers: headers,
       trackers: [...trackers, ...extraTrackers],
       fileName: fileName,
+      bingeGroup: bingeGroup,
       videoHash: videoHash,
       videoSize: videoSize,
       subtitles: subtitles,
