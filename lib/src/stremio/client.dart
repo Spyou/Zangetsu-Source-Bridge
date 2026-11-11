@@ -489,7 +489,7 @@ class StremioClient {
 
     final subtitles = _parseSubtitles(raw['subtitles']);
     final name = _str(raw['name']);
-    final description = _str(raw['title']);
+    final description = _str(raw['description']) ?? _str(raw['title']);
     final fileName = _str(hintMap['filename']);
     final bingeGroup = _str(hintMap['bingeGroup']);
     final videoHash = _str(hintMap['videoHash']);

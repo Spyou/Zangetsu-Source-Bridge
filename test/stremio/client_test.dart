@@ -218,6 +218,30 @@ void main() {
   });
 
   group('streams', () {
+    test('preserves formatted description with title fallback', () async {
+      final client = clientFor(
+        [],
+        jsonEncode({
+          'streams': [
+            {
+              'name': 'Addon',
+              'description': 'Release\n1080p\nEnglish',
+              'title': 'Fallback',
+              'url': 'https://example.com/one',
+            },
+            {'title': 'Legacy\n720p', 'url': 'https://example.com/two'},
+          ],
+        }),
+      );
+      final streams = await client.streams(
+        Uri.parse('https://addon.example'),
+        type: 'movie',
+        id: 'tt1',
+      );
+      expect(streams[0].description, 'Release\n1080p\nEnglish');
+      expect(streams[1].description, 'Legacy\n720p');
+    });
+
     test('maps every link kind and preserves fileIdx zero', () async {
       final client = clientFor([], fixture('streams_all.json'));
       final streams = await client.streams(
