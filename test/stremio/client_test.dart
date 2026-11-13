@@ -30,6 +30,30 @@ StremioClient clientFor(
 }
 
 void main() {
+  test('catalogue keeps poster shape supplied by the addon', () async {
+    final client = clientFor(
+      [],
+      jsonEncode({
+        'metas': [
+          {
+            'id': 'a',
+            'name': 'A',
+            'posterShape': 'landscape',
+            'landscapePoster': 'https://img.example/wide.jpg',
+          },
+          {'id': 'b', 'name': 'B', 'posterShape': 'square'},
+          {'id': 'c', 'name': 'C'},
+        ],
+      }),
+    );
+    final page = await client.catalog(
+      Uri.parse('https://addon.example'),
+      type: 'movie',
+      catalogId: 'top',
+    );
+    expect(page.metas.first.landscapePoster, 'https://img.example/wide.jpg');
+    expect(page.metas.map((m) => m.posterShape), ['landscape', 'square', null]);
+  });
   group('manifest', () {
     test('resolves an optional addon logo against its transport', () async {
       final body =
@@ -166,6 +190,37 @@ void main() {
   });
 
   group('meta', () {
+    test(
+      'detail background prefers background then landscape poster',
+      () async {
+        for (final background in ['https://img.example/backdrop', null, '  ']) {
+          final client = clientFor(
+            [],
+            jsonEncode({
+              'meta': {
+                'id': 'tt123',
+                'type': 'movie',
+                'name': 'Title',
+                'background': background,
+                'landscapePoster': 'https://img.example/landscape',
+              },
+            }),
+          );
+          final meta = await client.meta(
+            Uri.parse('https://addon.example'),
+            type: 'movie',
+            id: 'tt123',
+          );
+          expect(
+            meta!.background,
+            background?.trim().isNotEmpty == true
+                ? background
+                : 'https://img.example/landscape',
+          );
+        }
+      },
+    );
+
     test('keeps videos, season zero and verified external ids', () async {
       final client = clientFor([], fixture('meta_series.json'));
       final meta = await client.meta(

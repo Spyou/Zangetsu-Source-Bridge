@@ -78,6 +78,8 @@ class StremioClient {
           type: _str(raw['type']) ?? type,
           name: name,
           poster: _str(raw['poster']),
+          posterShape: _str(raw['posterShape']),
+          landscapePoster: _str(raw['landscapePoster']),
           background: _str(raw['background']),
           logo: _str(raw['logo']),
           releaseInfo: _str(raw['releaseInfo']),
@@ -133,12 +135,18 @@ class StremioClient {
         );
       }
     }
+    final background = _str(raw['background'])?.trim();
+    final landscape = _str(raw['landscapePoster'])?.trim();
     return StremioMeta(
       id: metaId,
       type: _str(raw['type']) ?? type,
       name: _str(raw['name']) ?? metaId,
       poster: _str(raw['poster']),
-      background: _str(raw['background']),
+      background: background?.isNotEmpty == true
+          ? background
+          : landscape?.isNotEmpty == true
+          ? landscape
+          : null,
       logo: _str(raw['logo']),
       description: _str(raw['description']),
       releaseInfo: _str(raw['releaseInfo']),
